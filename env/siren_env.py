@@ -33,7 +33,8 @@ class SirenWorldEnv(gym.Env):
                 "id": spaces.Text(min_length=0, max_length=15),
                 "type": spaces.Text(min_length=0, max_length=20),
                 "status": spaces.Text(min_length=0, max_length=15),
-                "location": spaces.Box(low=0, high=100, shape=(2,), dtype=np.float32)
+                "location": spaces.Box(low=0, high=100, shape=(2,), dtype=np.float32),
+                "energy": spaces.Box(low=0, high=100, shape=(1,), dtype=np.float32)
             })),
             "env_conditions": spaces.Dict({
                 "weather": spaces.Text(min_length=0, max_length=20),
@@ -81,7 +82,8 @@ class SirenWorldEnv(gym.Env):
                 "id": r["id"],
                 "type": r["type"],
                 "status": r["status"],
-                "location": r["location"]
+                "location": r["location"],
+                "energy": r["energy"]
             })
             
         return {

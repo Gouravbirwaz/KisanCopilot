@@ -63,6 +63,12 @@ def compute_reward(state: Dict[str, Any], action: Dict[str, Any], next_state: Di
             reward -= 2.0 # Cumulative penalty for slow response
             
     if next_event["status"] == "failed":
-        reward -= 25.0 # Big penalty for ignoring until failure
+        reward -= 25.0 
+
+    # 7. Energy Management Penalty (Theme #3)
+    for rid in dispatch_ids:
+        res = next((r for r in state["resources"] if r["id"] == rid), None)
+        if res and res["energy"] < 30:
+            reward -= 15.0 # Penalty for overworking exhausted units
 
     return reward
