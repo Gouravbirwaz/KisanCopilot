@@ -1,3 +1,18 @@
+---
+title: 🌾 KisanAgent
+emoji: 🚜
+colorFrom: green
+colorTo: yellow
+sdk: docker
+pinned: false
+license: mit
+app_port: 7860
+tags:
+- openenv
+- reinforcement-learning
+- agriculture
+---
+
 # 🌾 KisanAgent
 
 **RL Environment for Indian Smallholder Farm Advisory**  

@@ -122,6 +122,7 @@ Exactly one of tool_to_call or farm_decision must be non-null per response.
 
 def call_tool(
     tool_name: str,
+    session_id: str,
     args: Dict[str, Any] = None,
     retries: int = 3,
 ) -> Dict[str, Any]:
@@ -134,7 +135,10 @@ def call_tool(
         try:
             r = requests.post(
                 f"{ENV_SERVER}/step",
-                json={"action": {"tool_name": tool_name, "tool_args": args, "reasoning": "Calling tool"}},
+                json={
+                    "session_id": session_id,
+                    "action": {"tool_name": tool_name, "tool_args": args, "reasoning": "Calling tool"}
+                },
                 timeout=15,
             )
             if r.status_code == 422:
@@ -173,14 +177,18 @@ def reset_env(difficulty: str = "medium", seed: Optional[int] = None) -> Dict[st
 def step_env(
     farm_decision: str,
     reasoning: str,
+    session_id: str,
 ) -> Dict[str, Any]:
     """POST /step — advance one day."""
     r = requests.post(
         f"{ENV_SERVER}/step",
-        json={"action": {
-            "farm_decision": farm_decision,
-            "reasoning": reasoning,
-        }},
+        json={
+            "session_id": session_id,
+            "action": {
+                "farm_decision": farm_decision,
+                "reasoning": reasoning,
+            }
+        },
         timeout=30,
     )
     r.raise_for_status()
@@ -301,13 +309,15 @@ def run_episode(
     # ── Reset environment ───────────────────────────────────────
     reset_data = reset_env(difficulty=difficulty, seed=seed)
     observation = reset_data["observation"]
+    session_id = reset_data.get("session_id", "default")
     
     # Metadata contains the info in OpenEnv
     info = observation.get("metadata", {})
-    season_id = info.get("season_id", "N/A")
+    season_id_meta = info.get("season_id", "N/A")
 
     if verbose:
-        print(f"Season ID: {season_id}")
+        print(f"Session ID (OpenEnv): {session_id}")
+        print(f"Season ID (Meta): {season_id_meta}")
         print(f"Optimal income: ₹{info.get('optimal_income_inr', 40000):,.0f}")
         print(f"Schemes available: {', '.join(info.get('schemes_available', []))}")
         print(f"Pest events scheduled: {info.get('pest_events_scheduled', 0)}\n")
@@ -393,7 +403,7 @@ def run_episode(
 
             if tool_to_call and not farm_decision:
                 # Call the tool
-                tool_result = call_tool(tool_to_call)
+                tool_result = call_tool(tool_to_call, session_id)
 
                 if tool_result.get("error") == "tool_budget_exceeded":
                     # Force the agent to decide
@@ -433,14 +443,15 @@ def run_episode(
             step_result = step_env(
                 farm_decision=farm_decision,
                 reasoning=day_reasoning,
+                session_id=session_id,
             )
         except Exception as exc:
             logger.error("Step failed on day %d: %s", day, exc)
             break
 
         observation = step_result["observation"]
-        reward = step_result["reward"]
-        terminated = step_result["terminated"]
+        reward = step_result.get("reward") or 0.0
+        terminated = step_result.get("done", False) or step_result.get("terminated", False)
         episode_rewards.append(reward)
 
         if verbose:
