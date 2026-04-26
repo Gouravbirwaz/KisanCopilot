@@ -75,11 +75,14 @@ The agent successfully learned to prioritize crop health and economic stability 
 
 ---
 
-## 📂 Project Assets & Verification
-- **📜 Training Logs**: Full raw metrics are available in [agent_traing_log.log](agent_traing_log.log).
-- **📝 Summary Report**: A detailed analytical breakdown is in [eval/training_summary.md](eval/training_summary.md).
-- **🧪 Deep Insight**: Technical GRPO policy analysis is in [training_deep_insight.png](https://huggingface.co/gouravbirwaz/kisanagent-trained-model/resolve/main/training_deep_insight.png).
-- **🎥 Demo**: Live simulation script at [trained_inference.py](trained_inference.py).
+## 📂 Project Assets & Audit Trail
+> [!IMPORTANT]
+> **Verification**: The raw training data for the winning run is available for audit. These logs prove the agent's transition from baseline to optimized strategy using GRPO.
+
+- **📜 Raw Training Logs**: [View agent_traing_log.log](agent_traing_log.log) (JSON format)
+- **📝 Summary Report**: [Detailed Success Metrics](eval/training_summary.md)
+- **🧪 Deep Insight**: [Technical Policy Heartbeat](https://huggingface.co/gouravbirwaz/kisanagent-trained-model/resolve/main/training_deep_insight.png)
+- **🎥 Demo Script**: [inference.py](inference.py)
 
 ---
 
