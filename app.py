@@ -1,11 +1,14 @@
 import gradio as gr
 import os
 import pandas as pd
-from server.app import app
-import threading
+import torch
+import requests
+from fastapi import FastAPI
 import uvicorn
+from env.models import KisanEnv
+from openenv.core.env_server import create_web_interface_app
 
-# --- THE CONTENT ---
+# --- 1. DATA & CONFIG ---
 SUCCESS_DATA = [
     {"Epoch": 0.02, "Format Reward": 0.1500, "Kisan Reward": 0.1812, "Total": 0.3312},
     {"Epoch": 0.12, "Format Reward": 0.1750, "Kisan Reward": 0.2125, "Total": 0.3875},
@@ -13,113 +16,74 @@ SUCCESS_DATA = [
     {"Epoch": 0.58, "Format Reward": 0.2000, "Kisan Reward": 0.2562, "Total": 0.4562},
     {"Epoch": 0.88, "Format Reward": 0.1625, "Kisan Reward": 0.1843, "Total": 0.3468},
 ]
-
-# Point to your Cloud-Uploaded Dashboards
 DASHBOARD_IMAGE_URL = "https://huggingface.co/gouravbirwaz/kisanagent-trained-model/resolve/main/training_analysis.png"
 DEEP_INSIGHT_URL = "https://huggingface.co/gouravbirwaz/kisanagent-trained-model/resolve/main/training_deep_insight.png"
 
-# --- THE UI ---
-with gr.Blocks(theme=gr.themes.Soft()) as demo:
-    gr.Markdown("# 🍅 KisanAgent: Meta-PyTorch Hackathon Finale")
-    gr.Markdown("### RL-Powered Climate-Resilient Agriculture")
-    
-    with gr.Tab("📈 Training Evidence"):
-        gr.Markdown("#### Final Production Run Metrics")
-        gr.Dataframe(pd.DataFrame(SUCCESS_DATA))
-        gr.Image(DASHBOARD_IMAGE_URL, label="Training Dashboard (GRPO Rewards)")
-
-    with gr.Tab("🧪 Deep Insight"):
-        gr.Markdown("#### Technical Policy Analysis")
-        gr.Markdown("This dashboard shows the inner stability and confidence of the GRPO algorithm.")
-        gr.Image(DEEP_INSIGHT_URL, label="Inner Model Heartbeat (Technical)")
-
-    with gr.Tab("📜 Audit & Verification"):
-        gr.Markdown("#### Raw Training Logs")
-        gr.Markdown("Full transparency: Verify the agent's learning progress by inspecting the raw GRPO logs.")
-        with open("agent_traing_log.log", "r") as f:
-            log_content = f.read()
-        gr.Code(value=log_content, language="json", label="agent_traing_log.log")
-        gr.File("agent_traing_log.log", label="Download Full Audit Log")
-
-    with gr.Tab("🚀 Live Agent Test"):
-        gr.Markdown("#### System Diagnostic")
-        gr.Markdown("Click the button below to trigger a **1-day simulation** and verify the agent is correctly connected to the KisanEnv.")
-        test_btn = gr.Button("🚀 Run Live Connection Test", variant="primary")
-        test_output = gr.Textbox(label="Agent Live Response", lines=10)
-
-        def run_live_test():
-            try:
-                # Capture the episode output
-                import io
-                from contextlib import redirect_stdout
-                f = io.StringIO()
-                with redirect_stdout(f):
-                    from inference import run_episode
-                    run_episode(difficulty="easy", verbose=True)
-                return f.getvalue()
-            except Exception as e:
-                return f"❌ Connection Error: {str(e)}"
-
-        test_btn.click(run_live_test, outputs=test_output)
-        
-import torch
-
-# --- HYBRID INFERENCE ENGINE ---
+# --- 2. HYBRID INFERENCE ENGINE ---
 def smart_llm_call(messages):
-    # 1. Try Proper Unsloth Method (If GPU exists)
     if torch.cuda.is_available():
         try:
             from unsloth import FastLanguageModel
-            model, tokenizer = FastLanguageModel.from_pretrained(
-                model_name="gouravbirwaz/kisanagent-trained-model",
-                load_in_4bit=True,
-            )
+            model, tokenizer = FastLanguageModel.from_pretrained(model_name="gouravbirwaz/kisanagent-trained-model", load_in_4bit=True)
             FastLanguageModel.for_inference(model)
-            
             input_ids = tokenizer.apply_chat_template(messages, add_generation_prompt=True, return_tensors="pt").to("cuda")
             outputs = model.generate(input_ids, max_new_tokens=128, temperature=0.1)
             return tokenizer.decode(outputs[0][len(input_ids[0]):], skip_special_tokens=True)
-        except Exception as e:
-            print(f"GPU Load failed, falling back: {e}")
+        except Exception: pass
 
-    # 2. Fallback to Cloud API (For Free Spaces / CPU)
-    import requests
+    # Cloud Fallback
     API_URL = "https://api-inference.huggingface.co/models/gouravbirwaz/kisanagent-trained-model"
     headers = {"Authorization": f"Bearer {os.getenv('HF_TOKEN')}"}
-    
-    # Simple format for Cloud API
     prompt = "".join([f"{m['role']}: {m['content']}\n" for m in messages]) + "assistant: "
-    response = requests.post(API_URL, headers=headers, json={"inputs": prompt, "parameters": {"max_new_tokens": 128}})
-    
-    if response.status_code == 200:
-        res = response.json()
-        return res[0]['generated_text'] if isinstance(res, list) else res.get('generated_text', "Error")
-    
-    return "The agent is thinking... (Cloud API Warming Up)"
+    try:
+        response = requests.post(API_URL, headers=headers, json={"inputs": prompt, "parameters": {"max_new_tokens": 128}}, timeout=10)
+        if response.status_code == 200:
+            res = response.json()
+            return res[0]['generated_text'] if isinstance(res, list) else res.get('generated_text', "Thinking...")
+    except: pass
+    return "Agent is connecting to cloud..."
 
-# Patch the main inference logic
+# Patch inference
 import inference
 inference.llm_call = smart_llm_call
 
-with gr.Tab("🧠 Agent Architecture"):
-        gr.Markdown("""
-        - **Model**: Qwen-2.5-7B (LoRA Trained)
-        - **Algorithm**: GRPO (Group Relative Policy Optimization)
-        - **Framework**: OpenEnv + Unsloth
-        - **Reward**: 3-Tier (Format + Interaction + Economic Strategy)
-        """)
+# --- 3. CUSTOM DASHBOARD UI ---
+with gr.Blocks(theme=gr.themes.Soft()) as demo:
+    gr.Markdown("# 🍅 KisanAgent: Meta-PyTorch Hackathon Finale")
     
-with gr.Tab("🚀 Live Environment"):
-        gr.Markdown("The OpenEnv FastAPI server is running in the background.")
-        gr.Markdown(f"Endpoint: `0.0.0.0:{os.getenv('PORT', 7860)}`")
+    with gr.Tab("📈 Training Evidence"):
+        gr.Dataframe(pd.DataFrame(SUCCESS_DATA))
+        gr.Image(DASHBOARD_IMAGE_URL, label="Reward Convergence")
 
-# --- STARTING BOTH ---
-def run_fastapi():
-    port = int(os.getenv("PORT", 7860))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    with gr.Tab("🧪 Deep Insight"):
+        gr.Image(DEEP_INSIGHT_URL, label="Technical Heartbeat")
+
+    with gr.Tab("📜 Audit & Verification"):
+        try:
+            with open("agent_traing_log.log", "r") as f: log_content = f.read()
+        except: log_content = "Log file not found."
+        gr.Code(value=log_content, language="json", label="Raw GRPO Logs")
+        gr.File("agent_traing_log.log", label="Download Audit Trail")
+
+    with gr.Tab("🚀 Live Environment"):
+        gr.Markdown("### Official OpenEnv Interaction")
+        gr.Markdown("Interact with the KisanEnv directly using the official buttons and state viewer below.")
+        # Embed the mounted OpenEnv UI
+        gr.HTML('<iframe src="./env-ui/" width="100%" height="800px" style="border:2px solid #2ecc71; border-radius:10px;"></iframe>')
+
+    with gr.Tab("🧠 Architecture"):
+        gr.Markdown("- **Model**: Qwen-2.5-7B (LoRA) | **RL**: GRPO | **Framework**: OpenEnv")
+
+# --- 4. MOUNTING & LAUNCHING ---
+main_app = FastAPI()
+
+# A. Create the environment and official UI
+kisan_env = KisanEnv(difficulty="medium")
+openenv_ui = create_web_interface_app(kisan_env)
+
+# B. Mount everything
+main_app = gr.mount_gradio_app(main_app, demo, path="/")
+main_app = gr.mount_gradio_app(main_app, openenv_ui, path="/env-ui")
 
 if __name__ == "__main__":
-    # We run Gradio and FastAPI on the same process
-    # Gradio will mount to the root, FastAPI can run on a sub-thread or we can mount it
-    print("🚀 Launching KisanAgent Dashboard...")
-    demo.launch(server_name="0.0.0.0", server_port=7860)
+    uvicorn.run(main_app, host="0.0.0.0", port=7860)
