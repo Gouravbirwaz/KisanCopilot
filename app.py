@@ -32,6 +32,35 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         gr.Markdown("#### Technical Policy Analysis")
         gr.Markdown("This dashboard shows the inner stability and confidence of the GRPO algorithm.")
         gr.Image(DEEP_INSIGHT_URL, label="Inner Model Heartbeat (Technical)")
+
+    with gr.Tab("📜 Audit & Verification"):
+        gr.Markdown("#### Raw Training Logs")
+        gr.Markdown("Full transparency: Verify the agent's learning progress by inspecting the raw GRPO logs.")
+        with open("agent_traing_log.log", "r") as f:
+            log_content = f.read()
+        gr.Code(value=log_content, language="json", label="agent_traing_log.log")
+        gr.File("agent_traing_log.log", label="Download Full Audit Log")
+
+    with gr.Tab("🚀 Live Agent Test"):
+        gr.Markdown("#### System Diagnostic")
+        gr.Markdown("Click the button below to trigger a **1-day simulation** and verify the agent is correctly connected to the KisanEnv.")
+        test_btn = gr.Button("🚀 Run Live Connection Test", variant="primary")
+        test_output = gr.Textbox(label="Agent Live Response", lines=10)
+
+        def run_live_test():
+            try:
+                # Capture the episode output
+                import io
+                from contextlib import redirect_stdout
+                f = io.StringIO()
+                with redirect_stdout(f):
+                    from inference import run_episode
+                    run_episode(difficulty="easy", verbose=True)
+                return f.getvalue()
+            except Exception as e:
+                return f"❌ Connection Error: {str(e)}"
+
+        test_btn.click(run_live_test, outputs=test_output)
         
 import torch
 
