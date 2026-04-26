@@ -11,10 +11,11 @@ gradio
 # --- AI / LLM Dependencies ---
 torch
 transformers
-peft
 accelerate
 bitsandbytes
-scipy
+unsloth @ git+https://github.com/unslothai/unsloth.git
+openenv @ git+https://github.com/huggingface/openenv.git
+peft
 
 # --- OpenEnv Framework ---
 # (Assuming these are local or public)
