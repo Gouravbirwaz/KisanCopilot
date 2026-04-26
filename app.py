@@ -7,6 +7,7 @@ from fastapi import FastAPI
 import uvicorn
 from server.app import KisanEnvironment
 from openenv.core.env_server import create_web_interface_app
+from env.models import KisanAction, FarmerObservation
 
 # --- 1. DATA & CONFIG ---
 SUCCESS_DATA = [
@@ -68,7 +69,8 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     with gr.Tab("🚀 Live Environment"):
         gr.Markdown("### Official OpenEnv Interaction")
         gr.Markdown("Interact with the KisanEnv directly using the official buttons and state viewer below.")
-        gr.HTML('<iframe src="./env-ui/" width="100%" height="800px" style="border:2px solid #2ecc71; border-radius:10px;"></iframe>')
+        # Point Iframe to the mounted path
+        gr.HTML('<iframe src="/env-ui" width="100%" height="800px" style="border:2px solid #2ecc71; border-radius:10px;"></iframe>')
 
     with gr.Tab("🧠 Architecture"):
         gr.Markdown("- **Model**: Qwen-2.5-7B (LoRA) | **RL**: GRPO | **Framework**: OpenEnv")
@@ -76,17 +78,15 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 # --- 4. MOUNTING & LAUNCHING ---
 main_app = FastAPI()
 
-# Create the environment instance
-# In server/app.py, KisanEnvironment takes no args in __init__
-kisan_env = KisanEnvironment()
+# A. Get the official UI app (This returns a FastAPI app)
+# We set root_path so it knows it's mounted at /env-ui
+openenv_ui_app = create_web_interface_app(KisanEnvironment, KisanAction, FarmerObservation)
 
-# Get the official UI app
-from env.models import KisanAction, FarmerObservation
-openenv_ui = create_web_interface_app(KisanEnvironment, KisanAction, FarmerObservation)
+# B. Mount the official UI using FastAPI's native mount
+main_app.mount("/env-ui", openenv_ui_app)
 
-# Mount everything
+# C. Mount our custom Gradio dashboard at the root
 main_app = gr.mount_gradio_app(main_app, demo, path="/")
-main_app = gr.mount_gradio_app(main_app, openenv_ui, path="/env-ui")
 
 if __name__ == "__main__":
     uvicorn.run(main_app, host="0.0.0.0", port=7860)
