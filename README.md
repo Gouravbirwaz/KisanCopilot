@@ -86,6 +86,43 @@ The agent successfully learned to prioritize crop health and economic stability.
 - **📝 Summary**: [Full Analytical Breakdown](eval/training_summary.md)
 - **🎥 Interactive Demo**: [Launch Hugging Face Space](https://huggingface.co/spaces/gouravbirwaz/neuroninjas)
 
+---
+
+## 🎮 Playground User Guide
+The **Live Playground** tab allows you to manually act as the KisanAgent. Here is how to use the tools:
+
+### 🚜 The Playground Controls
+The playground is a manual interface to the **KisanAction** model. Here is how to use every field:
+
+#### 1. Configuration
+- **Difficulty**: 
+    - `easy`: Stable weather, high sensor reliability.
+    - `medium`: Variable monsoon, occasional sensor noise.
+    - `hard`: High crisis density (pests + droughts), frequent tool failures.
+
+#### 2. Farm Decisions (The Economics)
+| Decision | Impact | Cost (INR) |
+|----------|--------|------------|
+| `irrigate` | Boosts soil moisture +20%. Prevents drought stress. | ₹200 |
+| `fertilize` | Increases yield multiplier by 5% during growth. | ₹600 |
+| `spray_pesticide` | Suppresses active pest outbreaks. | ₹800 |
+| `sell_now` | Harvests crop and converts to cash (only in `harvest` stage). | ₹0 |
+| `hold_crop` | Wait for better prices. Risky if post-monsoon rain hits. | ₹0 |
+| `apply_scheme` | Claims government subsidy (must check `govt_scheme` first). | +₹Benefit |
+| `take_loan` | Injects cash if balance > ₹2,000 and no active debt. | +₹10,000 |
+| `do_nothing` | Advance to next day without spending. | ₹0 |
+
+#### 3. Reasoning (CoT)
+Use this field to explain **why** you are taking an action. In training, this is where the agent's **Chain-of-Thought** is logged. 
+- *Example*: "Soil is 38%, IMD predicts rain in 2 days, but fruiting stage requires immediate water. Irrigating now to prevent stress."
+
+### 🛠️ Tool Parameters (JSON)
+| Tool Name | Example Args (JSON) | Note |
+|-----------|---------------------|------|
+| `weather` | `{"days_ahead": 3}` | Look into the future (noisy). |
+| `soil` | `{"farm_id": "farm_001"}` | Check real-time moisture. |
+| `mandi_price` | `{"market": "KR Puram"}` | Check current crop market value. |
+
 ## 🛠️ 6. Technical Stack
 - **Server**: FastAPI (OpenEnv Core)
 - **Training**: Unsloth + TRL (GRPO)
