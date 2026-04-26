@@ -78,9 +78,11 @@ The agent successfully learned to prioritize crop health and economic stability.
 
 ## 📂 5. Audit & Reproducibility
 > [!IMPORTANT]
-> **Audit Trail**: We provide full transparency. The raw `agent_traing_log.log` contains every GRPO step, proving the "Intelligence Spike" at Epoch 0.58.
+> **Training Infrastructure**: While we provide a [Colab Notebook](training/train_grpo_unsloth.ipynb) for easy experimentation, the final production run was executed via **Hugging Face Jobs** (using NVIDIA A10G) after Colab GPU limits were reached.
+> 
+> **Source of Truth**: The definitive training logic used for the winning model is in the Python script: [training/train_grpo_unsloth.py](training/train_grpo_unsloth.py).
 
-- **📜 Raw Logs**: [View agent_traing_log.log](agent_traing_log.log)
+- **📜 Raw Training Logs**: [View agent_traing_log.log](agent_traing_log.log)
 - **📝 Summary**: [Full Analytical Breakdown](eval/training_summary.md)
 - **🎥 Interactive Demo**: [Launch Hugging Face Space](https://huggingface.co/spaces/gouravbirwaz/neuroninjas)
 
