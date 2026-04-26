@@ -56,7 +56,7 @@ We didn't just fine-tune; we **Reinforced**.
 ### 📈 Evidence of Learning & Strategy
 The agent successfully learned to prioritize crop health and economic stability over the 90-day cycle.
 
-<p align="center">
+<p align="center"> 
   <img src="https://huggingface.co/gouravbirwaz/kisanagent-trained-model/resolve/main/training_analysis.png" width="45%" alt="Reward Convergence" />
   <img src="https://huggingface.co/gouravbirwaz/kisanagent-trained-model/resolve/main/training_deep_insight.png" width="45%" alt="Deep Insight" />
 </p>
